@@ -1,0 +1,6 @@
+a {
+    color: black;
+}
+p>a{
+    color: blue;
+}

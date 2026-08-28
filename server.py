@@ -14,22 +14,34 @@ with open(DATA_FILE, "r", encoding="utf-8") as file:
 records = data["data"]
 
 @app.get("/api/search")
-def search(q: str):
-    query = q.strip().lower()
-    results=[]
+def search(q: str | None = None, unit: str | None = None, department: str | None = None, room: str | None = None):
+    results = []
 
     for record in records:
-        searchable_text = " ".join([
-        record.get("nazwisko_i_imie", ""),
-        record.get("nazwa_jednostki", ""),
-        record.get("nazwa_komorki", ""),
-        record.get("stanowisko", ""),
-        record.get("pokoj", ""),
-        record.get("telefon", "")    
-        ])
 
-        if query in searchable_text.lower():
-            results.append(record)
+        if unit is not None:
+            if record.get("nazwa_jednostki", "").strip() == unit.strip():
+                results.append(record)
+        elif department is not None:
+            if record.get("nazwa_komorki", "").strip() == department.strip():
+                results.append(record)
+        elif room is not None:
+            if record.get("pokoj", "").strip() == room.strip():
+                results.append(record)
+        elif q is not None:
+            query = q.strip().lower()
+
+            searchable_text = " ".join([
+                record.get("nazwisko_i_imie", ""),
+                record.get("nazwa_jednostki", ""),
+                record.get("nazwa_komorki", ""),
+                record.get("stanowisko", ""),
+                record.get("pokoj", ""),
+                record.get("telefon", "")
+            ])
+
+            if query in searchable_text.lower():
+                results.append(record)
 
     groups = {}
     for record in results:
@@ -59,6 +71,4 @@ app.mount("/", StaticFiles(directory=BASE_DIR /"static", html=True), name="stati
 
 # python -m uvicorn server:app --reload
 
-
-# przyciski skróty grupy 
 # przejscia z wydzialuj do grupy wydzialow 
