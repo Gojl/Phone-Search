@@ -14,7 +14,7 @@ with open(DATA_FILE, "r", encoding="utf-8") as file:
 records = data["data"]
 
 @app.get("/api/search")
-def search(q: str | None = None, unit: str | None = None, department: str | None = None, room: str | None = None):
+def search(q: str | None = None, unit: str | None = None, department: str | None = None, position: str | None = None, room: str | None = None):
     results = []
 
     for record in records:
@@ -24,6 +24,9 @@ def search(q: str | None = None, unit: str | None = None, department: str | None
                 results.append(record)
         elif department is not None:
             if record.get("nazwa_komorki", "").strip() == department.strip():
+                results.append(record)
+        elif position is not None:
+            if record.get("stanowisko", "").strip() == position.strip():
                 results.append(record)
         elif room is not None:
             if record.get("pokoj", "").strip() == room.strip():
@@ -66,9 +69,36 @@ def search(q: str | None = None, unit: str | None = None, department: str | None
     "results": grouped_results
 }
 
+@app.get("/api/filters")
+def get_filters():
+    units = set()
+    departments = set()
+    positions = set()
+    rooms = set()
+
+    for record in records:
+        unit = record.get("nazwa_jednostki", "").strip()
+        department = record.get("nazwa_komorki", "").strip()
+        position = record.get("stanowisko", "").strip()
+        room = record.get("pokoj", "").strip()
+
+        if unit:
+            units.add(unit)
+        if department:
+            departments.add(department)
+        if position:
+            positions.add(position)
+        if room:
+            rooms.add(room)
+
+    return {
+        "units": sorted(units),
+        "departments": sorted(departments),
+        "positions": sorted(positions),
+        "rooms": sorted(rooms)
+    }
+
 
 app.mount("/", StaticFiles(directory=BASE_DIR /"static", html=True), name="static")
 
 # python -m uvicorn server:app --reload
-
-# przejscia z wydzialuj do grupy wydzialow 

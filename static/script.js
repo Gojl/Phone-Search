@@ -4,10 +4,30 @@ const results = document.querySelector("#results");
 const resultsInfo = document.querySelector("#resultsInfo");
 const resultsTable = document.querySelector("#resultsTable");
 const pagination = document.querySelector("#pagination");
+const filterList = document.querySelector("#filterList");
+const showAllButton = document.querySelector("#showAllButton");
+const showUnitsButton = document.querySelector("#showUnitsButton");
+const showDepartmentsButton = document.querySelector("#showDepartmentsButton");
+const showPositionsButton = document.querySelector("#showPositionsButton");
+const showRoomsButton = document.querySelector("#showRoomsButton");
 
 let currentResults = [];
 let currentPage = 1;
 const resultsPerPage = 25;
+const filtersPerPage = 15;
+let currentFilterItems = [];
+let currentFilterType = "";
+let currentFilterPage = 1;
+
+async function search(query) {
+    const response = await fetch(
+        `/api/search?q=${encodeURIComponent(query)}`
+    );
+
+    const data = await response.json();
+
+    displayResults(data);
+}
 
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -21,14 +41,187 @@ form.addEventListener("submit", async (event) => {
     await search(query);
 });
 
-async function search(query) {
-    const response = await fetch(
-        `/api/search?q=${encodeURIComponent(query)}`
-    );
+showAllButton.addEventListener("click", async () => {
+    filterList.innerHTML = "";
+    input.value = "";
+    await search("");
+});
 
+showUnitsButton.addEventListener("click", async () => {
+    const data = await loadFilters();
+    showFilterList(data.units, "unit");
+});
+
+showDepartmentsButton.addEventListener("click", async () => {
+    const data = await loadFilters();
+    showFilterList(data.departments, "department");
+});
+
+showPositionsButton.addEventListener("click", async () => {
+    const data = await loadFilters();
+    showFilterList(data.positions, "position");
+});
+
+showRoomsButton.addEventListener("click", async () => {
+    const data = await loadFilters();
+    showFilterList(data.rooms, "room");
+});
+
+async function loadFilters() {
+    const response = await fetch("/api/filters");
     const data = await response.json();
+    return data;
+}
 
+async function searchPosition(position) {
+    input.value = position;
+    const response = await fetch(
+        `/api/search?position=${encodeURIComponent(position)}`
+    );
+    const data = await response.json();
     displayResults(data);
+}
+
+function showFilterList(items, type) {
+    resultsTable.classList.add("d-none");
+    resultsInfo.textContent = "";
+    pagination.innerHTML = "";
+    currentFilterItems = items;
+    currentFilterType = type;
+    currentFilterPage = 1;
+    renderFilterPage();
+}
+
+function renderFilterPage() {
+    filterList.innerHTML = "";
+    pagination.innerHTML = "";
+    const start = (currentFilterPage - 1) * filtersPerPage;
+    const end = start + filtersPerPage;
+    const pageItems = currentFilterItems.slice(start, end);
+    const list = document.createElement("div");
+    list.classList.add("list-group");
+
+    for (const item of pageItems) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.classList.add(
+            "list-group-item",
+            "list-group-item-action"
+        );
+
+        button.textContent = item;
+        button.addEventListener("click", () => {
+            filterList.innerHTML = "";
+
+            if (currentFilterType === "unit") {
+                searchUnit(item);
+            } else if (currentFilterType === "department") {
+                searchDepartment(item);
+            } else if (currentFilterType === "position") {
+                searchPosition(item);
+            } else if (currentFilterType === "room") {
+                searchRoom(item);
+            }
+        });
+        list.appendChild(button);
+    }
+    filterList.appendChild(list);
+    renderFilterPagination();
+}
+
+function renderFilterPagination() {
+    pagination.innerHTML = "";
+    const totalPages = Math.ceil(
+        currentFilterItems.length / filtersPerPage
+    );
+    if (totalPages <= 1) {
+        return;
+    }
+    addFilterPaginationButton(
+        "‹",
+        currentFilterPage - 1,
+        currentFilterPage === 1
+    );
+    addFilterPaginationButton(
+        "1",
+        1,
+        currentFilterPage === 1
+    );
+    if (currentFilterPage > 3) {
+        addFilterDots();
+    }
+    const startPage = Math.max(
+        2,
+        currentFilterPage - 1
+    );
+    const endPage = Math.min(
+        totalPages - 1,
+        currentFilterPage + 1
+    );
+    for (let page = startPage; page <= endPage; page++) {
+        addFilterPaginationButton(
+            page,
+            page,
+            page === currentFilterPage
+        );
+    }
+    if (currentFilterPage < totalPages - 2) {
+        addFilterDots();
+    }
+    if (totalPages > 1) {
+        addFilterPaginationButton(
+            totalPages,
+            totalPages,
+            currentFilterPage === totalPages
+        );
+    }
+    addFilterPaginationButton(
+        "›",
+        currentFilterPage + 1,
+        currentFilterPage === totalPages
+    );
+}
+
+function addFilterPaginationButton(text, page, disabled = false) {
+    const li = document.createElement("li");
+    li.classList.add("page-item");
+
+    if (disabled) {
+        li.classList.add("disabled");
+    }
+
+    if (page === currentFilterPage) {
+        li.classList.add("active");
+    }
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.classList.add("page-link");
+    button.textContent = text;
+
+    if (!disabled) {
+        button.addEventListener("click", () => {
+            currentFilterPage = page;
+            renderFilterPage();
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+    }
+
+    li.appendChild(button);
+    pagination.appendChild(li);
+}
+
+function addFilterDots() {
+    const li = document.createElement("li");
+    li.classList.add("page-item", "disabled");
+    const span = document.createElement("span");
+    span.classList.add("page-link");
+    span.textContent = "...";
+    li.appendChild(span);
+    pagination.appendChild(li);
 }
 
 async function searchUnit(unit) {
@@ -70,7 +263,7 @@ async function searchRoom(room) {
 function displayResults(data) {
     results.innerHTML = "";
     pagination.innerHTML = "";
-
+    filterList.innerHTML = "";
     if (data.count === 0) {
         resultsInfo.textContent = "Nie znaleziono wyników.";
         resultsTable.classList.add("d-none");
