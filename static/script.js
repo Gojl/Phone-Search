@@ -6,7 +6,6 @@ const resultsTable = document.querySelector("#resultsTable");
 
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
-
     const query = input.value.trim();
 
     if (!query) {
@@ -18,7 +17,6 @@ form.addEventListener("submit", async (event) => {
     );
 
     const data = await response.json();
-
 
     results.innerHTML = "";
     resultsTable.classList.remove("d-none");
@@ -32,40 +30,41 @@ form.addEventListener("submit", async (event) => {
         `Znaleziono: ${data.count}`;
 
 
-    for (const record of data.results) {
+for (const person of data.results) {
+    const entries = person.entries;
 
+    for (let i = 0; i < entries.length; i++) {
+        const record = entries[i];
         const row = document.createElement("tr");
 
-        const nameCell = document.createElement("td");
-        nameCell.textContent = record.nazwisko_i_imie;
+        if (i === 0) {
+            const nameCell = document.createElement("td");
+            nameCell.textContent = person.nazwisko_i_imie;
+            nameCell.rowSpan = entries.length;
+            row.appendChild(nameCell);
+        }
 
         const unitCell = document.createElement("td");
-        unitCell.textContent = record.nazwa_jednostki;
+        unitCell.textContent = record.nazwa_jednostki || "";
 
         const departmentCell = document.createElement("td");
-        departmentCell.textContent = record.nazwa_komorki;
+        departmentCell.textContent = record.nazwa_komorki || "";
 
         const positionCell = document.createElement("td");
-        positionCell.textContent = record.stanowisko;
+        positionCell.textContent = record.stanowisko || "";
 
         const roomCell = document.createElement("td");
-        roomCell.textContent = record.pokoj;
+        roomCell.textContent = record.pokoj || "";
 
         const phoneCell = document.createElement("td");
-        phoneCell.textContent = record.telefon;
+        phoneCell.textContent = record.telefon || "";
 
-
-        row.append(
-            nameCell,
-            unitCell,
-            departmentCell,
-            positionCell,
-            roomCell,
-            phoneCell
-        );
-
-
+        row.appendChild(unitCell);
+        row.appendChild(departmentCell);
+        row.appendChild(positionCell);
+        row.appendChild(roomCell);
+        row.appendChild(phoneCell);
         results.appendChild(row);
     }
-
+}
 });
